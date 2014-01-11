@@ -3,31 +3,16 @@
   :url "http://example.com/FIXME"
 
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.clojure/tools.reader "0.8.2"]
-                 ;; CLJ
-                 [ring/ring-core "1.2.0"]
-                 [compojure "1.1.6"]
-                 [cheshire "5.2.0"]
-                 ;; CLJS
                  [org.clojure/clojurescript "0.0-2138"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
                  [cljs-http "0.1.2"]
                  [om "0.1.5"]]
 
-  :plugins [[lein-cljsbuild "1.0.1"]
-            [lein-ring "0.8.7"]
-            [lein-pdo "0.1.1"]]
-
-  :aliases {"dev" ["pdo" "cljsbuild" "auto" "dev," "ring" "server-headless"]}
-
-  :ring {:handler om-freebase-explorer.core/app
-         :init    om-freebase-explorer.core/init}
-
-  :source-paths ["src/clj"]
+  :plugins [[lein-cljsbuild "1.0.1"]]
 
   :cljsbuild {
               :builds [{:id "dev"
-                        :source-paths ["src/cljs"]
+                        :source-paths ["src"]
                         :compiler {
                                    :output-to "resources/public/js/om_freebase_explorer.js"
                                    :output-dir "resources/public/js/out"
@@ -35,7 +20,7 @@
                                    :source-map true
                                    :externs ["om/externs/react.js"]}}
                        {:id "release"
-                        :source-paths ["src/cljs"]
+                        :source-paths ["src"]
                         :compiler {
                                    :output-to "resources/public/js/om_freebase_explorer.js"
                                    :source-map "resources/public/js/om_freebase_explorer.js.map"
