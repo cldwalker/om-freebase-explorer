@@ -5,8 +5,7 @@
               [om.core :as om :include-macros true]
               [om.dom :as dom :include-macros true]
               [goog.net.Jsonp]
-              [clojure.string :as string]
-              [om-freebase-explorer.utils :refer [guid]]))
+              [clojure.string :as string]))
 
 ;; Lets you do (prn "stuff") to the console
 (enable-console-print!)
