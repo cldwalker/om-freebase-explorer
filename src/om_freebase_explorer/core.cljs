@@ -40,31 +40,31 @@
 ;; TODO: give each element a :key
 (defn render-table [headers rows]
   (apply dom/table nil
-         (into
-          [(apply dom/tr nil
+         (dom/caption nil (str "Found " (count rows) " results"))
+         (apply dom/tr nil
                   (map
                    (fn [value] (dom/th nil value))
-                   headers))]
-          (map #(apply dom/tr
+                   headers))
+         (map #(apply dom/tr
                        nil
                        (map
                         (fn [value] (dom/td nil value))
                         %))
-               rows))))
+               rows)))
 
 (defn search-results [app owner {:keys [result]}]
-  (.log js/console "DATA" result)
   (om/component
    (dom/div
     #js {:id "search_results"}
     (if result
-      (->> (js->clj result :keywordize-keys true)
-           (map (juxt :id :name))
-           (render-table ["Id" "Name"]))
-      "No search results"))))
+      (do (.log js/console "DATA" result)
+        (->> (js->clj result :keywordize-keys true)
+             (map (juxt :id :name))
+             (render-table ["Id" "Name"])))
+      ""))))
 
 (defn handle-event [event event-data {:keys [chan owner]}]
-  (.log js/console "Event: " event event-data)
+  (.log js/console "Event: " (pr-str event) event-data)
   (case event
     :search (fetch-search-results chan event-data)
     :search-result (om/set-state! owner :search-results (.-result event-data))
