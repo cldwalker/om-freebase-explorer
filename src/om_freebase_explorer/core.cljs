@@ -14,6 +14,23 @@
 (def app-state
   (atom {}))
 
+
+(def app-history (atom [@app-state]))
+
+(add-watch app-state :history
+  (fn [_ _ _ n]
+    (when-not (= (last @app-history) n)
+      (swap! app-history conj n))
+    (set! (.-innerHTML (.getElementById js/document "message"))
+      (let [c (count @app-history)]
+        (str c " Saved state(s)")))))
+
+(aset js/window "undo"
+  (fn [e]
+    (when (> (count @app-history) 1)
+      (swap! app-history pop)
+      (reset! app-state (last @app-history)))))
+
 (def search-url "https://www.googleapis.com/freebase/v1/search")
 
 (def id-url "https://www.googleapis.com/freebase/v1/topic/%s")
