@@ -16,36 +16,57 @@
 
 (def search-url "https://www.googleapis.com/freebase/v1/search")
 
-(defn jsonp [url params]
-  (let [out (chan 10)]
+(defn jsonp [out url params]
+  (let [x :a]
     (.send (goog.net.Jsonp. url)
            params
-           (fn [data] (put! out data))
+           (fn [data] (put! out [:search-result data]))
            (fn [error] (.log js/console "Jsonp ERROR:" error)))
     out))
 
-(defn fetch-search-results []
-  (jsonp search-url #js {:query "physics"}))
+(defn fetch-search-results [out query]
+  (jsonp out search-url #js {:query query}))
+
+(defn search-form [app owner {:keys [chan]}]
+  (om/component
+   (dom/div nil
+            (dom/input
+             #js {:id "search_term"})
+            (dom/button
+             #js {:onClick
+                  (fn [e]
+                    (put! chan [:search
+                                (-> (.querySelector js/document "#search_term")
+                                    .-value)]))}
+             "Search"))))
 
 (defn om-freebase-explorer-app [app owner]
-  (reify
-    om/IWillMount
-    (will-mount [_]
-      (go
-       (let [data (<! (fetch-search-results))]
-         (def dt data)
-         (.log js/console "DATA" data)
-         (om/set-state! owner :search-results (.-result data)))))
-    om/IRender
+  (let [search-ch (chan)]
+    (reify
+      om/IWillMount
+      (will-mount [_]
+                  (go (while true
+                        (.log js/console "Loop...")
+                        (let [[event event-data](<! search-ch)]
+                          (.log js/console "Event: " event event-data)
+                          (case
+                            event
+                            :search (fetch-search-results search-ch event-data)
+                            :search-result (om/set-state! owner :search-results (.-result event-data))
+                            (.log js/console "No event found for" event event-data))
+                          )))
+                  )
+      om/IRender
       (render [_]
-        (dom/div nil
-                 (dom/h1 nil "Welcome to Freebase Explorer!")
-                 (dom/div
-                  #js {:id "search_results"}
-                  (if-let [result (om/get-state owner :search-results)]
-                    (->> (js->clj result :keywordize-keys true)
-                           (map :name)
-                           (string/join ", "))
-                    "No search results"))))))
+              (dom/div nil
+                       (dom/h1 nil "Welcome to Freebase Explorer!")
+                       (om/build search-form app {:opts {:chan search-ch}})
+                       (dom/div
+                        #js {:id "search_results"}
+                        (if-let [result (om/get-state owner :search-results)]
+                          (->> (js->clj result :keywordize-keys true)
+                               (map :name)
+                               (string/join ", "))
+                          "No search results")))))))
 
 (om/root app-state om-freebase-explorer-app (.getElementById js/document "app"))
