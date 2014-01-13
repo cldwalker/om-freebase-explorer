@@ -16,14 +16,19 @@
 
 (def search-url "https://www.googleapis.com/freebase/v1/search")
 
-(defn jsonp [out url params]
+(def id-url "https://www.googleapis.com/freebase/v1/topic/%s")
+
+(defn jsonp [out event url params]
   (.send (goog.net.Jsonp. url)
            params
-           (fn [data] (put! out [:search-result data]))
+           (fn [data] (put! out [event data]))
            (fn [error] (.log js/console "Jsonp ERROR:" error))))
 
 (defn fetch-search-results [out query]
-  (jsonp out search-url #js {:query query}))
+  (jsonp out :search-result search-url #js {:query query}))
+
+(defn fetch-id-results [chan id]
+  (jsonp chan :id-result (string/replace id-url "%s" id) #js {:filter "commons"}))
 
 (defn submit-search [chan e]
   (put! chan [:search
@@ -52,22 +57,45 @@
                         %))
                rows)))
 
-(defn search-results [app owner {:keys [result]}]
+(defn click-id-link [chan id e]
+  (.log js/console e)
+  (put! chan [:freebase-id id])
+  false)
+
+(defn search-results [app owner {:keys [result chan]}]
   (om/component
    (dom/div
     #js {:id "search_results"}
     (if result
       (do (.log js/console "DATA" result)
         (->> (js->clj result :keywordize-keys true)
-             (map (juxt :id :name))
+             (map #(vector (dom/a #js {:href "#" :onClick (partial click-id-link chan (:id %))}
+                                  nil (:id %))
+                           (:name %)))
              (render-table ["Id" "Name"])))
+      ""))))
+
+;; consider reuse with search-results once this is more fleshed out
+(defn id-results [app owner {:keys [result]}]
+  (om/component
+   (dom/div
+    #js {:id "id_results"}
+    (if result
+      (do (.log js/console "DATA" result)
+        (->> (js->clj result :keywordize-keys true)
+             (map (fn [[k v]] [k (:count v) (pr-str (:values v))]))
+             (render-table ["Id" "Count" "Values"])))
       ""))))
 
 (defn handle-event [event event-data {:keys [chan owner]}]
   (.log js/console "Event: " (pr-str event) event-data)
   (case event
     :search (fetch-search-results chan event-data)
-    :search-result (om/set-state! owner :search-results (.-result event-data))
+    :freebase-id (fetch-id-results chan event-data)
+    :search-result (om/set-state! owner :search-result (.-result event-data))
+    :id-result (do
+                 (om/set-state! owner :search-result nil) ;; temp hack to hide search table
+                 (om/set-state! owner :id-result (.-property event-data)))
     (.log js/console "No event found for" event event-data)))
 
 
@@ -88,6 +116,9 @@
               (dom/div nil
                        (dom/h1 nil "Welcome to Freebase Explorer!")
                        (om/build search-form app {:opts {:chan (om/get-state owner :chan)}})
-                       (om/build search-results app {:opts {:result (om/get-state owner :search-results)}})))))
+                       ;; Consider not rendering these when they have no results
+                       (om/build search-results app {:opts {:result (om/get-state owner :search-result)
+                                                            :chan (om/get-state owner :chan)}})
+                       (om/build id-results app {:opts {:result (om/get-state owner :id-result)}})))))
 
 (om/root app-state om-freebase-explorer-app (.getElementById js/document "app"))
