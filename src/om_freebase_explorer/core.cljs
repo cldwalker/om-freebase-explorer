@@ -87,17 +87,17 @@
              (render-table ["Id" "Count" "Values"])))
       ""))))
 
-(defn handle-event [event event-data {:keys [chan owner]}]
+(defn handle-event [app event event-data {:keys [chan]}]
   (.log js/console "Event: " (pr-str event) event-data)
   (case event
     :service.search (fetch-search-results chan event-data)
     :service.id (fetch-id-results chan event-data)
-    :ui.search (om/set-state! owner :search-result (.-result event-data))
-    :ui.id (do
-                 (om/set-state! owner :search-result nil) ;; temp hack to hide search table
-                 (om/set-state! owner :id-result (.-property event-data)))
-    (.log js/console "No event found for" event event-data)))
+    :ui.search  (om/update! app assoc :search-result (.-result event-data))
+    :ui.id (om/update! app assoc
+                       :search-result nil ;; temp hack to hide search table
+                       :id-result (.-property event-data))
 
+    (.log js/console "No event found for" event event-data)))
 
 (defn om-freebase-explorer-app [app owner]
   (reify
@@ -108,17 +108,18 @@
                     (go (while true
                           (let [[event event-data](<! main-chan)]
                             (handle-event
+                             app
                              event
                              event-data
-                             {:chan main-chan :owner owner}))))))
+                             {:chan main-chan}))))))
       om/IRender
       (render [_]
               (dom/div nil
                        (dom/h1 nil "Welcome to Freebase Explorer!")
                        (om/build search-form app {:opts {:chan (om/get-state owner :chan)}})
                        ;; Consider not rendering these when they have no results
-                       (om/build search-results app {:opts {:result (om/get-state owner :search-result)
+                       (om/build search-results app {:opts {:result (:search-result app)
                                                             :chan (om/get-state owner :chan)}})
-                       (om/build id-results app {:opts {:result (om/get-state owner :id-result)}})))))
+                       (om/build id-results app {:opts {:result (:id-result app)}})))))
 
 (om/root app-state om-freebase-explorer-app (.getElementById js/document "app"))
