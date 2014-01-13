@@ -18,20 +18,20 @@
 
 (def id-url "https://www.googleapis.com/freebase/v1/topic/%s")
 
-(defn jsonp [out event url params]
+(defn jsonp [chan event url params]
   (.send (goog.net.Jsonp. url)
            params
-           (fn [data] (put! out [event data]))
+           (fn [data] (put! chan [event data]))
            (fn [error] (.log js/console "Jsonp ERROR:" error))))
 
-(defn fetch-search-results [out query]
-  (jsonp out :search-result search-url #js {:query query}))
+(defn fetch-search-results [chan query]
+  (jsonp chan :ui.search search-url #js {:query query}))
 
 (defn fetch-id-results [chan id]
-  (jsonp chan :id-result (string/replace id-url "%s" id) #js {:filter "commons"}))
+  (jsonp chan :ui.id (string/replace id-url "%s" id) #js {:filter "commons"}))
 
 (defn submit-search [chan e]
-  (put! chan [:search
+  (put! chan [:service.search
               (-> (.querySelector js/document "#search_term")
                   .-value)])
   false)
@@ -59,7 +59,7 @@
 
 (defn click-id-link [chan id e]
   (.log js/console e)
-  (put! chan [:freebase-id id])
+  (put! chan [:service.id id])
   false)
 
 (defn search-results [app owner {:keys [result chan]}]
@@ -90,10 +90,10 @@
 (defn handle-event [event event-data {:keys [chan owner]}]
   (.log js/console "Event: " (pr-str event) event-data)
   (case event
-    :search (fetch-search-results chan event-data)
-    :freebase-id (fetch-id-results chan event-data)
-    :search-result (om/set-state! owner :search-result (.-result event-data))
-    :id-result (do
+    :service.search (fetch-search-results chan event-data)
+    :service.id (fetch-id-results chan event-data)
+    :ui.search (om/set-state! owner :search-result (.-result event-data))
+    :ui.id (do
                  (om/set-state! owner :search-result nil) ;; temp hack to hide search table
                  (om/set-state! owner :id-result (.-property event-data)))
     (.log js/console "No event found for" event event-data)))
