@@ -3,16 +3,21 @@
   <head>
     <meta charset="utf-8"></meta>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/om_freebase_explorer.css" rel="stylesheet">
   </head>
   <body>
-    <div style="text-align: center; margin-top: 20px;">
-      <input type="button" value="Undo" onclick="undo()" />
-    </div>
-    <div id="message" style="text-align: center">
-    </div>
-    <!-- entry point for components -->
-    <div id="app">
-      <h1>Loading...</h1>
+    <div class="container">
+      <!-- entry point for components -->
+      <div id="app">
+        <h1>Loading...</h1>
+      </div>
+
+      <div id="undo_button">
+        <input type="button" value="Undo" onclick="undo()" />
+      </div>
+      <div id="message">
+      </div>
     </div>
 
     <script src="http://fb.me/react-0.8.0.js"></script>

@@ -56,11 +56,13 @@
   (om/component
    (dom/form #js {:onSubmit #(submit-search chan %) }
             (dom/input #js {:type "text" :id "search_term"})
-            (dom/input #js {:type "submit" :value "Search"}))))
+            (dom/input #js {:className "btn btn-primary btn-lg" :type "submit" :value "Search"}))))
 
 ;; TODO: give each element a :key
 (defn render-table [headers rows]
-  (apply dom/table nil
+  (apply dom/table
+         #js {:className "table table-striped"}
+         nil
          (dom/caption nil (str "Found " (count rows) " results"))
          (apply dom/tr nil
                   (map
@@ -84,11 +86,11 @@
     #js {:id "search_results"}
     (if result
       (do (.log js/console "DATA" result)
-        (->> (js->clj result :keywordize-keys true)
-             (map #(vector (dom/a #js {:href "#" :onClick (partial click-id-link chan (:id %))}
-                                  nil (:id %))
-                           (:name %)))
-             (render-table ["Id" "Name"])))
+          (->> (js->clj result :keywordize-keys true)
+               (map #(vector (dom/a #js {:href "#" :onClick (partial click-id-link chan (:id %))}
+                                    nil (:id %))
+                             (:name %)))
+               (render-table ["Id" "Name"])))
       ""))))
 
 ;; consider reuse with search-results once this is more fleshed out
@@ -132,7 +134,9 @@
       (render [_]
               (dom/div nil
                        (dom/h1 nil "Welcome to Freebase Explorer!")
-                       (om/build search-form app {:opts {:chan (om/get-state owner :chan)}})
+                       (dom/div #js {:className "jumbotron"}
+                                nil
+                                (om/build search-form app {:opts {:chan (om/get-state owner :chan)}})) 
                        ;; Consider not rendering these when they have no results
                        (om/build search-results app {:opts {:result (:search-result app)
                                                             :chan (om/get-state owner :chan)}})
