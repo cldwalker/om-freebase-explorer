@@ -80,11 +80,11 @@
   (put! chan [:service.id id])
   false)
 
-(defn search-results [app owner {:keys [result chan]}]
+(defn search-results [app owner {:keys [chan]}]
   (om/component
    (dom/div
     #js {:id "search_results"}
-    (if result
+    (if-let [result (:search-result app)]
       (do (.log js/console "DATA" result)
           (->> (js->clj result :keywordize-keys true)
                (map #(vector (dom/a #js {:href "#" :onClick (partial click-id-link chan (:id %))}
@@ -94,11 +94,11 @@
       ""))))
 
 ;; consider reuse with search-results once this is more fleshed out
-(defn id-results [app owner {:keys [result]}]
+(defn id-results [app owner]
   (om/component
    (dom/div
     #js {:id "id_results"}
-    (if result
+    (if-let [result (:id-result app)]
       (do (.log js/console "DATA" result)
         (->> (js->clj result :keywordize-keys true)
              (map (fn [[k v]] [k (:count v) (pr-str (:values v))]))
@@ -138,8 +138,7 @@
                                 nil
                                 (om/build search-form app {:opts {:chan (om/get-state owner :chan)}})) 
                        ;; Consider not rendering these when they have no results
-                       (om/build search-results app {:opts {:result (:search-result app)
-                                                            :chan (om/get-state owner :chan)}})
-                       (om/build id-results app {:opts {:result (:id-result app)}})))))
+                       (om/build search-results app {:opts {:chan (om/get-state owner :chan)}})
+                       (om/build id-results app)))))
 
 (om/root app-state om-freebase-explorer-app (.getElementById js/document "app"))
