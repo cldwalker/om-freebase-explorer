@@ -4,6 +4,7 @@
               [cljs.core.async :refer [put! <! >! chan timeout]]
               [om.core :as om :include-macros true]
               [om.dom :as dom :include-macros true]
+              [om-components.filtered-table :refer [filtered-table]]
               [goog.net.Jsonp]
               [clojure.string :as string]))
 
@@ -58,22 +59,12 @@
             (dom/input #js {:type "text" :id "search_term"})
             (dom/input #js {:className "btn btn-primary btn-lg" :type "submit" :value "Search"}))))
 
-;; TODO: give each element a :key
-(defn render-table [headers rows]
-  (apply dom/table
-         #js {:className "table table-striped"}
-         nil
-         (dom/caption nil (str "Found " (count rows) " results"))
-         (apply dom/tr nil
-                  (map
-                   (fn [value] (dom/th nil value))
-                   headers))
-         (map #(apply dom/tr
-                       nil
-                       (map
-                        (fn [value] (dom/td nil value))
-                        %))
-               rows)))
+(defn render-table [app rows]
+  (dom/div nil
+           (dom/h2 nil (str "Found " (count rows) " results"))
+           (om/build filtered-table app
+             {:init-state {:rows rows
+                           :table-attributes {:className "table table-striped"}}})))
 
 (defn click-id-link [chan id e]
   (.log js/console e)
@@ -86,11 +77,12 @@
     #js {:id "search_results"}
     (if-let [result (:search-result app)]
       (do (.log js/console "DATA" result)
-          (->> (js->clj result :keywordize-keys true)
-               (map #(vector (dom/a #js {:href "#" :onClick (partial click-id-link chan (:id %))}
-                                    nil (:id %))
-                             (:name %)))
-               (render-table ["Id" "Name"])))
+        (let [rows (->> (js->clj result :keywordize-keys true)
+                        (mapv #(hash-map
+                                :id (dom/a #js {:href "#" :onClick (partial click-id-link chan (:id %))}
+                                           nil (:id %))
+                                :name (:name %))))]
+           (render-table app rows)))
       ""))))
 
 ;; consider reuse with search-results once this is more fleshed out
@@ -101,8 +93,9 @@
     (if-let [result (:id-result app)]
       (do (.log js/console "DATA" result)
         (->> (js->clj result :keywordize-keys true)
-             (map (fn [[k v]] [k (:count v) (pr-str (:values v))]))
-             (render-table ["Id" "Count" "Values"])))
+             (mapv (fn [[k v]]
+                     {:id k :count (:count v) :values (pr-str (:values v))}))
+             (render-table app)))
       ""))))
 
 (defn handle-event [app event event-data {:keys [chan]}]
@@ -136,7 +129,7 @@
                        (dom/h1 nil "Welcome to Freebase Explorer!")
                        (dom/div #js {:className "jumbotron"}
                                 nil
-                                (om/build search-form app {:opts {:chan (om/get-state owner :chan)}})) 
+                                (om/build search-form app {:opts {:chan (om/get-state owner :chan)}}))
                        ;; Consider not rendering these when they have no results
                        (om/build search-results app {:opts {:chan (om/get-state owner :chan)}})
                        (om/build id-results app)))))

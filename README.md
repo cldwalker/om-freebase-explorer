@@ -4,6 +4,16 @@ react, a la cljs thanks to [om](https://github.com/swannodette/om). This app aim
 entities navigable from their API.
 
 ## Usage
+This currently depends on an unreleased library:
+
+```
+$ git clone https://github.com/cldwalker/om-components
+$ cd om-components
+$ lein install
+```
+
+To run the app:
+
 ```sh
 $ lein cljsbuild once dev
 $ open resources/public/index.html
