@@ -14,7 +14,8 @@
 (def app-state
   (atom {}))
 
-
+;; app history and undo
+;; ====================
 (def app-history (atom [@app-state]))
 
 (add-watch app-state :history
@@ -31,6 +32,8 @@
       (swap! app-history pop)
       (reset! app-state (last @app-history)))))
 
+;; freebase
+;; ========
 (def search-url "https://www.googleapis.com/freebase/v1/search")
 
 (def id-url "https://www.googleapis.com/freebase/v1/topic/%s")
@@ -47,6 +50,8 @@
 (defn fetch-id-results [chan id]
   (jsonp chan :ui.id (string/replace id-url "%s" id) #js {:filter "commons"}))
 
+;; UI
+;; ==
 (defn submit-search [chan e]
   (put! chan [:service.search
               (-> (.querySelector js/document "#search_term")
@@ -97,6 +102,9 @@
                      {:id k :count (:count v) :values (pr-str (:values v))}))
              (render-table app)))
       ""))))
+
+;; Event loop and main app
+;; =======================
 
 (defn handle-event [app event event-data {:keys [chan]}]
   (.log js/console "Event: " (pr-str event) event-data)
